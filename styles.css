@@ -194,22 +194,22 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 
 /* ==========================================================================
-   Main Grid Layout
+   Main Grid Layout (Reference-matched)
    ========================================================================== */
 .main-wrapper {
-  max-width: 1240px;
-  margin: clamp(16px, 3vw, 32px) auto clamp(40px, 6vw, 80px);
-  padding: 0 clamp(12px, 3vw, 24px);
-  width: 100%;
+  width: min(100% - 48px, 1360px);
+  margin: 32px auto 80px;
+  padding: 0;
   box-sizing: border-box;
 }
 
 .page-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 350px;
+  grid-template-columns: minmax(0, 1fr) 360px;
   gap: 28px;
   align-items: start;
 }
+
 
 
 /* ==========================================================================
@@ -826,13 +826,14 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   position: sticky;
   top: 76px;
   width: 100%;
-  max-width: 350px;
+  max-width: 360px;
   min-width: 0;
+  justify-self: end;
 }
 
 .ig-card {
   width: 100%;
-  max-width: 100%;
+  max-width: 360px;
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -849,7 +850,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* Banner */
 .ig-card-banner {
   width: 100%;
-  height: 140px;
+  height: 235px;
   position: relative;
   overflow: hidden;
   background: #0d0d0d;
@@ -864,6 +865,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   display: block;
   transition: transform 0.3s ease;
 }
+
 
 .ig-card:hover .ig-banner-img {
   transform: scale(1.03);
@@ -1040,19 +1042,20 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    Comprehensive Responsive System (320px to 1920px+)
    ========================================================================== */
 
-/* Laptops & Standard Desktops (<= 1200px) */
-@media (max-width: 1200px) {
+/* Laptops & Standard Desktops (900px to 1199px) */
+@media (min-width: 900px) and (max-width: 1199px) {
   .page-grid {
-    grid-template-columns: minmax(0, 1fr) 330px;
-    gap: 22px;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 20px;
   }
 }
 
-/* Tablets & Foldables (<= 960px) — Transition to Clean Single Column */
-@media (max-width: 960px) {
+/* Tablets & Small Screens (<= 899px) — Transition to Clean Single Column */
+@media (max-width: 899px) {
   .main-wrapper {
     margin: 20px auto 60px;
     padding: 0 18px;
+    width: 100%;
   }
 
   .page-grid {
@@ -1062,6 +1065,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 
   .sidebar-column {
     position: static;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .ig-card {
     max-width: 100%;
     width: 100%;
   }
@@ -1088,6 +1096,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
     scroll-snap-align: start;
   }
 }
+
 
 /* Standard Mobile Phones (<= 640px) */
 @media (max-width: 640px) {
