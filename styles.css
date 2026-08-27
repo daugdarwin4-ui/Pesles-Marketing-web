@@ -206,10 +206,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 
 .page-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(310px, 28vw, 360px);
-  gap: clamp(20px, 2.5vw, 32px);
+  grid-template-columns: minmax(0, 1fr) 350px;
+  gap: 28px;
   align-items: start;
 }
+
 
 /* ==========================================================================
    Left Column (Hero, Player & Playlist)
@@ -824,9 +825,14 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .sidebar-column {
   position: sticky;
   top: 76px;
+  width: 100%;
+  max-width: 350px;
+  min-width: 0;
 }
 
 .ig-card {
+  width: 100%;
+  max-width: 100%;
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -840,35 +846,33 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   box-shadow: 0 16px 44px rgba(0, 0, 0, 0.6), 0 0 30px rgba(225, 48, 108, 0.15);
 }
 
-/* Banner - Full Image Display */
+/* Banner */
 .ig-card-banner {
   width: 100%;
+  height: 140px;
   position: relative;
   overflow: hidden;
   background: #0d0d0d;
   border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .ig-banner-img {
   width: 100%;
-  height: auto;
-  max-height: 280px;
-  object-fit: contain;
+  height: 100%;
+  object-fit: cover;
   object-position: top center;
   display: block;
   transition: transform 0.3s ease;
 }
 
 .ig-card:hover .ig-banner-img {
-  transform: scale(1.02);
+  transform: scale(1.03);
 }
 
 .ig-banner-overlay {
   display: none;
 }
+
 
 
 
