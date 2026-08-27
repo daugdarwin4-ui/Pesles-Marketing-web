@@ -498,8 +498,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   background: var(--brand-green);
   color: #000;
   border-color: var(--brand-green);
-
-
+}
 
 /* ==========================================================================
    Right Sidebar — Conversion Card
@@ -589,8 +588,6 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   padding: 14px 12px;
   text-align: center;
 }
-
-.stat-item {}
 
 .stat-num {
   font-family: 'Plus Jakarta Sans', sans-serif;
