@@ -69,6 +69,9 @@
             <!-- High-Res Image Display -->
             <img id="vslImage" alt="Pesles Presentation" style="display:none;" />
 
+            <!-- Embedded Vimeo Player for Slide 04 -->
+            <iframe id="vslIframe" src="" style="display:none;" frameborder="0" allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media" allowfullscreen></iframe>
+
             <!-- Prev / Next Navigation Controls -->
             <button type="button" class="player-nav-btn prev" onclick="prevMedia()" aria-label="Previous item"
               title="Previous (Left Arrow)">
@@ -142,10 +145,10 @@
             </div>
           </div>
 
-          <!-- Thumb 4: Screen Recording MP4 -->
+          <!-- Thumb 4: Platform Walkthrough Vimeo Video -->
           <div class="playlist-thumb" onclick="selectThumb(this, 4)" id="thumb4" title="Platform Walkthrough">
             <div class="playlist-thumb-img">
-              <video src="vids/screenrecordM%20(1).mp4#t=0.5" preload="metadata" muted playsinline></video>
+              <img src="https://vumbnail.com/1221855390.jpg" onerror="this.onerror=null;this.src='vids/photo_6338936490255128232_w.jpg';" alt="Platform Walkthrough" loading="lazy">
             </div>
             <div class="playlist-thumb-overlay">
               <div class="playlist-play-btn">
@@ -160,6 +163,7 @@
           </div>
 
         </section>
+
 
       </div>
 

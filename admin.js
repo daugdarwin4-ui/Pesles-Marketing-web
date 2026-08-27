@@ -117,12 +117,13 @@ const DEFAULT_MEDIA_ITEMS = [
   {
     id: 'media_4',
     title: 'Platform Walkthrough',
-    type: 'video',
-    src: 'vids/screenrecordM (1).mp4',
+    type: 'iframe',
+    src: 'https://player.vimeo.com/video/1221855390?h=00f22282ba',
     archived: false,
     dateAdded: '2026-08-27'
   }
 ];
+
 
 // Factory Default Instagram Config
 const DEFAULT_IG_CONFIG = {

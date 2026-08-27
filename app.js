@@ -191,7 +191,7 @@ const DEFAULT_MEDIA = [
   { id: '1', title: 'Live Session', src: 'vids/IMG_7152.MP4', type: 'video', archived: false },
   { id: '2', title: 'Creative Showcase', src: 'vids/photo_6338936490255128232_w.jpg', type: 'image', archived: false },
   { id: '3', title: 'Student Results', src: 'vids/photo_6338936490255128263_w.jpg', type: 'image', archived: false },
-  { id: '4', title: 'Platform Walkthrough', src: 'vids/screenrecordM (1).mp4', type: 'video', archived: false }
+  { id: '4', title: 'Platform Walkthrough', src: 'https://player.vimeo.com/video/1221855390?h=00f22282ba', type: 'iframe', archived: false }
 ];
 
 let livePlaylist = [];
@@ -201,7 +201,19 @@ function loadLiveMedia() {
   const stored = localStorage.getItem(STORAGE_KEY_MEDIA);
   if (stored) {
     try {
-      const all = JSON.parse(stored);
+      let all = JSON.parse(stored);
+      // Migrate old slide 04 if it had local screenrecord mp4
+      all = all.map(item => {
+        if (item.id === '4' || item.id === 'media_4' || item.src.includes('screenrecord')) {
+          return {
+            ...item,
+            src: 'https://player.vimeo.com/video/1221855390?h=00f22282ba',
+            type: 'iframe'
+          };
+        }
+        return item;
+      });
+      localStorage.setItem(STORAGE_KEY_MEDIA, JSON.stringify(all));
       livePlaylist = all.filter(i => !i.archived);
     } catch (e) {
       livePlaylist = DEFAULT_MEDIA;
@@ -229,7 +241,9 @@ function renderLivePlaylist() {
     } else if (item.type === 'image') {
       previewContent = `<img src="${item.src}" alt="${item.title || 'Preview'}" loading="lazy">`;
     } else if (item.type === 'iframe') {
-      previewContent = `<div style="width:100%;height:100%;background:#1e3a8a;display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#fff;">Embed</div>`;
+      const vimeoMatch = item.src.match(/video\/(\d+)/);
+      const thumbSrc = vimeoMatch ? `https://vumbnail.com/${vimeoMatch[1]}.jpg` : 'vids/photo_6338936490255128232_w.jpg';
+      previewContent = `<img src="${thumbSrc}" onerror="this.onerror=null;this.src='vids/photo_6338936490255128232_w.jpg';" alt="${item.title || 'Preview'}" loading="lazy">`;
     }
 
     return `
@@ -297,6 +311,7 @@ function selectThumb(el, num) {
   const container = document.getElementById('videoContainer');
   const video     = document.getElementById('vslVideo');
   const img       = document.getElementById('vslImage');
+  const iframe    = document.getElementById('vslIframe');
 
   if (!container) return;
 
@@ -317,6 +332,11 @@ function selectThumb(el, num) {
       img.src = '';
     }
 
+    if (iframe) {
+      iframe.style.display = 'none';
+      iframe.src = '';
+    }
+
     // Activate media
     if (item.type === 'video' && video) {
       video.src = item.src;
@@ -326,11 +346,15 @@ function selectThumb(el, num) {
     } else if (item.type === 'image' && img) {
       img.src = item.src;
       img.style.display = 'block';
+    } else if (item.type === 'iframe' && iframe) {
+      iframe.src = item.src;
+      iframe.style.display = 'block';
     }
 
     container.style.opacity = '1';
   }, 180);
 }
+
 
 function nextMedia() {
   const nextIdx = currentMediaIndex >= livePlaylist.length ? 1 : currentMediaIndex + 1;
