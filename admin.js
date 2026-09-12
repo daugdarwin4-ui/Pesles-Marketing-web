@@ -121,6 +121,14 @@ const DEFAULT_MEDIA_ITEMS = [
     src: 'https://player.vimeo.com/video/1221855390?h=00f22282ba',
     archived: false,
     dateAdded: '2026-08-27'
+  },
+  {
+    id: 'media_5',
+    title: 'Masterclass Walkthrough',
+    type: 'iframe',
+    src: 'https://player.vimeo.com/video/1226110797?h=46e2e8deb8',
+    archived: false,
+    dateAdded: '2026-08-27'
   }
 ];
 
@@ -145,7 +153,44 @@ function getMediaItems() {
     return DEFAULT_MEDIA_ITEMS;
   }
   try {
-    return JSON.parse(data);
+    let items = JSON.parse(data);
+
+    // Auto-correct any Vimeo/YouTube/Loom items saved with wrong type or raw URL
+    items = items.map(item => {
+      let src = item.src || '';
+      let type = item.type;
+      const formatted = formatEmbedUrl(src);
+      if (formatted !== src || formatted.includes('player.vimeo.com') || formatted.includes('youtube.com/embed') || formatted.includes('loom.com/embed')) {
+        src = formatted;
+        type = 'iframe';
+      }
+      return {
+        ...item,
+        src: src,
+        type: type
+      };
+    });
+
+    // Ensure item 5 is present
+    const hasItem5 = items.some(item => item.src && item.src.includes('1226110797'));
+    if (!hasItem5) {
+      const item4 = items.find(item => item.id === 'media_4' || item.id === '4');
+      if (item4) {
+        item4.src = 'https://player.vimeo.com/video/1221855390?h=00f22282ba';
+        item4.title = 'Platform Walkthrough';
+        item4.type = 'iframe';
+      }
+      items.push({
+        id: 'media_5',
+        title: 'Masterclass Walkthrough',
+        src: 'https://player.vimeo.com/video/1226110797?h=46e2e8deb8',
+        type: 'iframe',
+        archived: false,
+        dateAdded: '2026-08-27'
+      });
+    }
+    localStorage.setItem(STORAGE_KEY_MEDIA, JSON.stringify(items));
+    return items;
   } catch (e) {
     return DEFAULT_MEDIA_ITEMS;
   }
@@ -494,16 +539,56 @@ function handleFileSelect(e) {
   reader.readAsDataURL(file);
 }
 
+// Auto-format embed links (Vimeo, YouTube, Loom)
+function formatEmbedUrl(url) {
+  if (!url) return '';
+  url = url.trim();
+
+  // Vimeo standard / unlisted URLs
+  // e.g. https://vimeo.com/1226110797/46e2e8deb8?share=copy...
+  const vimeoUnlistedMatch = url.match(/vimeo\.com\/(\d+)\/([a-zA-Z0-9]+)/);
+  if (vimeoUnlistedMatch) {
+    return `https://player.vimeo.com/video/${vimeoUnlistedMatch[1]}?h=${vimeoUnlistedMatch[2]}`;
+  }
+
+  // e.g. https://vimeo.com/1226110797
+  const vimeoPublicMatch = url.match(/vimeo\.com\/(\d+)/);
+  if (vimeoPublicMatch && !url.includes('player.vimeo.com')) {
+    return `https://player.vimeo.com/video/${vimeoPublicMatch[1]}`;
+  }
+
+  // YouTube URLs
+  const ytMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
+  if (ytMatch && !url.includes('youtube.com/embed')) {
+    return `https://www.youtube.com/embed/${ytMatch[1]}`;
+  }
+
+  // Loom URLs
+  const loomMatch = url.match(/loom\.com\/share\/([a-zA-Z0-9]+)/);
+  if (loomMatch && !url.includes('loom.com/embed')) {
+    return `https://www.loom.com/embed/${loomMatch[1]}`;
+  }
+
+  return url;
+}
+
 function saveMediaForm(e) {
   e.preventDefault();
 
   const title = document.getElementById('mediaInputTitle').value.trim();
-  const type  = document.getElementById('mediaInputType').value;
-  const src   = document.getElementById('mediaInputSrc').value.trim();
+  let type  = document.getElementById('mediaInputType').value;
+  let src   = document.getElementById('mediaInputSrc').value.trim();
 
   if (!title || !src) {
     alert('Please provide both a Title and a Media Source (File or URL).');
     return;
+  }
+
+  // Auto format embed links
+  const formattedSrc = formatEmbedUrl(src);
+  if (formattedSrc !== src || formattedSrc.includes('player.vimeo.com') || formattedSrc.includes('youtube.com/embed') || formattedSrc.includes('loom.com/embed')) {
+    src = formattedSrc;
+    type = 'iframe';
   }
 
   let items = getMediaItems();
@@ -676,5 +761,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const igBannerFileInput = document.getElementById('igBannerFileInput');
   if (igBannerFileInput) igBannerFileInput.addEventListener('change', handleIgBannerUpload);
+
+  const mediaInputSrc = document.getElementById('mediaInputSrc');
+  if (mediaInputSrc) {
+    mediaInputSrc.addEventListener('input', (e) => {
+      const val = e.target.value.trim();
+      const formatted = formatEmbedUrl(val);
+      if (formatted !== val) {
+        e.target.value = formatted;
+        const typeSelect = document.getElementById('mediaInputType');
+        if (typeSelect) typeSelect.value = 'iframe';
+      }
+    });
+  }
 });
 

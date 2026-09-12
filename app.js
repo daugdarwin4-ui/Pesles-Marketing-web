@@ -191,28 +191,86 @@ const DEFAULT_MEDIA = [
   { id: '1', title: 'Live Session', src: 'vids/IMG_7152.MP4', type: 'video', archived: false },
   { id: '2', title: 'Creative Showcase', src: 'vids/photo_6338936490255128232_w.jpg', type: 'image', archived: false },
   { id: '3', title: 'Student Results', src: 'vids/photo_6338936490255128263_w.jpg', type: 'image', archived: false },
-  { id: '4', title: 'Platform Walkthrough', src: 'https://player.vimeo.com/video/1221855390?h=00f22282ba', type: 'iframe', archived: false }
+  { id: '4', title: 'Platform Walkthrough', src: 'https://player.vimeo.com/video/1221855390?h=00f22282ba', type: 'iframe', archived: false },
+  { id: '5', title: 'Masterclass Walkthrough', src: 'https://player.vimeo.com/video/1226110797?h=46e2e8deb8', type: 'iframe', archived: false }
 ];
 
 let livePlaylist = [];
 let currentMediaIndex = 1;
+
+// Auto-format embed links (Vimeo, YouTube, Loom)
+function formatEmbedUrl(url) {
+  if (!url) return '';
+  url = url.trim();
+
+  // Vimeo standard / unlisted URLs
+  // e.g. https://vimeo.com/1226110797/46e2e8deb8?share=copy...
+  const vimeoUnlistedMatch = url.match(/vimeo\.com\/(\d+)\/([a-zA-Z0-9]+)/);
+  if (vimeoUnlistedMatch) {
+    return `https://player.vimeo.com/video/${vimeoUnlistedMatch[1]}?h=${vimeoUnlistedMatch[2]}`;
+  }
+
+  // e.g. https://vimeo.com/1226110797
+  const vimeoPublicMatch = url.match(/vimeo\.com\/(\d+)/);
+  if (vimeoPublicMatch && !url.includes('player.vimeo.com')) {
+    return `https://player.vimeo.com/video/${vimeoPublicMatch[1]}`;
+  }
+
+  // YouTube URLs
+  const ytMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
+  if (ytMatch && !url.includes('youtube.com/embed')) {
+    return `https://www.youtube.com/embed/${ytMatch[1]}`;
+  }
+
+  // Loom URLs
+  const loomMatch = url.match(/loom\.com\/share\/([a-zA-Z0-9]+)/);
+  if (loomMatch && !url.includes('loom.com/embed')) {
+    return `https://www.loom.com/embed/${loomMatch[1]}`;
+  }
+
+  return url;
+}
 
 function loadLiveMedia() {
   const stored = localStorage.getItem(STORAGE_KEY_MEDIA);
   if (stored) {
     try {
       let all = JSON.parse(stored);
-      // Migrate old slide 04 if it had local screenrecord mp4
+      // Auto-correct any Vimeo/YouTube/Loom items to iframe and proper embed URL
       all = all.map(item => {
-        if (item.id === '4' || item.id === 'media_4' || item.src.includes('screenrecord')) {
-          return {
-            ...item,
-            src: 'https://player.vimeo.com/video/1221855390?h=00f22282ba',
-            type: 'iframe'
-          };
+        let src = item.src || '';
+        let type = item.type;
+        const formatted = formatEmbedUrl(src);
+        if (formatted !== src || formatted.includes('player.vimeo.com') || formatted.includes('youtube.com/embed') || formatted.includes('loom.com/embed')) {
+          src = formatted;
+          type = 'iframe';
         }
-        return item;
+        return {
+          ...item,
+          src: src,
+          type: type
+        };
       });
+
+      // Ensure 5th video item is present in stored items
+      const hasItem5 = all.some(item => item.src && item.src.includes('1226110797'));
+      if (!hasItem5) {
+        // Restore slide 4 to original vimeo if it was changed
+        const item4 = all.find(item => item.id === '4' || item.id === 'media_4');
+        if (item4) {
+          item4.src = 'https://player.vimeo.com/video/1221855390?h=00f22282ba';
+          item4.title = 'Platform Walkthrough';
+          item4.type = 'iframe';
+        }
+        all.push({
+          id: 'media_5',
+          title: 'Masterclass Walkthrough',
+          src: 'https://player.vimeo.com/video/1226110797?h=46e2e8deb8',
+          type: 'iframe',
+          archived: false,
+          dateAdded: '2026-08-27'
+        });
+      }
       localStorage.setItem(STORAGE_KEY_MEDIA, JSON.stringify(all));
       livePlaylist = all.filter(i => !i.archived);
     } catch (e) {
@@ -241,7 +299,7 @@ function renderLivePlaylist() {
     } else if (item.type === 'image') {
       previewContent = `<img src="${item.src}" alt="${item.title || 'Preview'}" loading="lazy">`;
     } else if (item.type === 'iframe') {
-      const vimeoMatch = item.src.match(/video\/(\d+)/);
+      const vimeoMatch = item.src.match(/video\/(\d+)/) || item.src.match(/vimeo\.com\/(\d+)/);
       const thumbSrc = vimeoMatch ? `https://vumbnail.com/${vimeoMatch[1]}.jpg` : 'vids/photo_6338936490255128232_w.jpg';
       previewContent = `<img src="${thumbSrc}" onerror="this.onerror=null;this.src='vids/photo_6338936490255128232_w.jpg';" alt="${item.title || 'Preview'}" loading="lazy">`;
     }
@@ -380,20 +438,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadLiveMedia();
   renderLivePlaylist();
   syncLiveInstagram();
-
-  // Load first item into player
-  if (livePlaylist.length > 0) {
-    const first = livePlaylist[0];
-    const video = document.getElementById('vslVideo');
-    const img   = document.getElementById('vslImage');
-    if (first.type === 'video' && video) {
-      video.src = first.src;
-      video.style.display = 'block';
-    } else if (first.type === 'image' && img) {
-      img.src = first.src;
-      img.style.display = 'block';
-    }
-  }
+  selectThumb(null, 1);
 });
 
 
