@@ -197,7 +197,25 @@ function getMediaItems() {
 }
 
 function saveMediaItems(items) {
-  localStorage.setItem(STORAGE_KEY_MEDIA, JSON.stringify(items));
+  try {
+    const payload = JSON.stringify(items);
+    // Check estimated storage payload (UTF-16 chars ~ 2 bytes)
+    const sizeInMB = (payload.length * 2) / (1024 * 1024);
+    if (sizeInMB > 4.5) {
+      alert('⚠️ Asset storage quota limit reached (' + sizeInMB.toFixed(1) + ' MB).\n\nBrowser localStorage is capped at ~5MB across the site.\n\nPlease avoid large Base64 video data. Use project file paths (e.g. vids/SCREENRECORD.mp4) or hosted video links (Vimeo / YouTube / Loom / CDN).');
+      return false;
+    }
+    localStorage.setItem(STORAGE_KEY_MEDIA, payload);
+    return true;
+  } catch (err) {
+    console.error('Failed to save media items to localStorage:', err);
+    if (err.name === 'QuotaExceededError' || err.code === 22 || err.code === 1014) {
+      alert('⚠️ Storage Quota Exceeded!\n\nThe video or media file is too large to store directly in browser memory (browser limit is ~5MB).\n\nTo add videos safely:\n1. Place the video file in your project\'s "vids" folder (e.g. vids/SCREENRECORD.mp4), OR\n2. Use a hosted link (Vimeo, YouTube, Loom, or direct MP4 URL).');
+    } else {
+      alert('Error saving asset: ' + (err.message || 'Unknown error'));
+    }
+    return false;
+  }
 }
 
 function getIgConfig() {
@@ -459,6 +477,7 @@ function moveItem(id, direction) {
    Modal Operations (Add / Edit / Replace)
    ========================================================================== */
 let editingMediaId = null;
+let currentObjectUrl = null;
 
 function openAddMediaModal() {
   editingMediaId = null;
@@ -468,6 +487,21 @@ function openAddMediaModal() {
   document.getElementById('mediaInputSrc').value   = '';
   document.getElementById('mediaFileInput').value  = '';
   document.getElementById('mediaSaveBtn').textContent = 'Add to Live Site';
+
+  if (currentObjectUrl) {
+    URL.revokeObjectURL(currentObjectUrl);
+    currentObjectUrl = null;
+  }
+  const previewBox = document.getElementById('modalPreviewContainer');
+  if (previewBox) {
+    previewBox.style.display = 'none';
+    previewBox.innerHTML = '';
+  }
+  const feedbackEl = document.getElementById('mediaFileFeedback');
+  if (feedbackEl) {
+    feedbackEl.style.display = 'none';
+    feedbackEl.innerHTML = '';
+  }
 
   openModal();
 }
@@ -485,7 +519,18 @@ function openEditModal(id) {
   document.getElementById('mediaFileInput').value  = '';
   document.getElementById('mediaSaveBtn').textContent = 'Save Changes';
 
+  if (currentObjectUrl) {
+    URL.revokeObjectURL(currentObjectUrl);
+    currentObjectUrl = null;
+  }
+  const feedbackEl = document.getElementById('mediaFileFeedback');
+  if (feedbackEl) {
+    feedbackEl.style.display = 'none';
+    feedbackEl.innerHTML = '';
+  }
+
   openModal();
+  updateModalPreview(item.type, item.src);
 }
 
 function openReplaceModal(id) {
@@ -501,7 +546,18 @@ function openReplaceModal(id) {
   document.getElementById('mediaFileInput').value  = '';
   document.getElementById('mediaSaveBtn').textContent = 'Replace Asset';
 
+  if (currentObjectUrl) {
+    URL.revokeObjectURL(currentObjectUrl);
+    currentObjectUrl = null;
+  }
+  const feedbackEl = document.getElementById('mediaFileFeedback');
+  if (feedbackEl) {
+    feedbackEl.style.display = 'none';
+    feedbackEl.innerHTML = '';
+  }
+
   openModal();
+  updateModalPreview(item.type, item.src);
 }
 
 function openModal() {
@@ -510,17 +566,94 @@ function openModal() {
 
 function closeModal() {
   document.getElementById('mediaModal').classList.remove('active');
+  if (currentObjectUrl) {
+    URL.revokeObjectURL(currentObjectUrl);
+    currentObjectUrl = null;
+  }
+  const previewBox = document.getElementById('modalPreviewContainer');
+  if (previewBox) {
+    previewBox.style.display = 'none';
+    previewBox.innerHTML = '';
+  }
+  const feedbackEl = document.getElementById('mediaFileFeedback');
+  if (feedbackEl) {
+    feedbackEl.style.display = 'none';
+    feedbackEl.innerHTML = '';
+  }
 }
 
-// File chooser reader
+// Quick select local project videos
+function selectQuickVideo(path, defaultTitle) {
+  document.getElementById('mediaInputType').value = 'video';
+  document.getElementById('mediaInputSrc').value = path;
+  const titleInput = document.getElementById('mediaInputTitle');
+  if (!titleInput.value.trim() && defaultTitle) {
+    titleInput.value = defaultTitle;
+  }
+  const feedbackEl = document.getElementById('mediaFileFeedback');
+  if (feedbackEl) {
+    feedbackEl.style.display = 'block';
+    feedbackEl.className = 'upload-feedback-badge success';
+    feedbackEl.innerHTML = `✅ Selected project video: <strong>${escapeHtml(path)}</strong>`;
+  }
+  updateModalPreview('video', path);
+}
+
+// Dynamic modal live preview
+function updateModalPreview(forceType, forceSrc) {
+  const previewBox = document.getElementById('modalPreviewContainer');
+  if (!previewBox) return;
+
+  const srcInput = document.getElementById('mediaInputSrc');
+  const src = (forceSrc !== undefined ? forceSrc : (srcInput ? srcInput.value : '')).trim();
+  let type = forceType || (document.getElementById('mediaInputType') ? document.getElementById('mediaInputType').value : 'video');
+
+  if (!src) {
+    previewBox.style.display = 'none';
+    previewBox.innerHTML = '';
+    return;
+  }
+
+  // Auto-detect embed links
+  if (!forceType) {
+    const formatted = formatEmbedUrl(src);
+    if (formatted !== src || formatted.includes('player.vimeo.com') || formatted.includes('youtube.com/embed') || formatted.includes('loom.com/embed')) {
+      type = 'iframe';
+      const typeSelect = document.getElementById('mediaInputType');
+      if (typeSelect) typeSelect.value = 'iframe';
+    }
+  }
+
+  previewBox.style.display = 'block';
+
+  if (type === 'video') {
+    previewBox.innerHTML = `
+      <video src="${escapeHtml(src)}" controls playsinline style="width:100%;height:100%;object-fit:contain;background:#000;" onerror="this.parentElement.innerHTML='<div class=\\'preview-error\\'>Preview not available for ${escapeHtml(src)}. Make sure the file exists in your project vids folder.</div>'"></video>
+    `;
+  } else if (type === 'image') {
+    previewBox.innerHTML = `
+      <img src="${escapeHtml(src)}" alt="Preview" style="width:100%;height:100%;object-fit:contain;background:#000;" onerror="this.parentElement.innerHTML='<div class=\\'preview-error\\'>Image not found at ${escapeHtml(src)}.</div>'">
+    `;
+  } else if (type === 'iframe') {
+    const embedUrl = formatEmbedUrl(src);
+    previewBox.innerHTML = `
+      <iframe src="${escapeHtml(embedUrl)}" frameborder="0" allow="autoplay; fullscreen" style="width:100%;height:100%;background:#000;"></iframe>
+    `;
+  }
+}
+
+// Safe file chooser reader
 function handleFileSelect(e) {
   const file = e.target.files[0];
   if (!file) return;
 
+  const isVideo = file.type.startsWith('video/') || /\.(mp4|mov|webm|m4v)$/i.test(file.name);
+  const isImage = file.type.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(file.name);
+
   // Auto-detect type
-  if (file.type.startsWith('video/')) {
+  if (isVideo) {
     document.getElementById('mediaInputType').value = 'video';
-  } else if (file.type.startsWith('image/')) {
+  } else if (isImage) {
     document.getElementById('mediaInputType').value = 'image';
   }
 
@@ -531,12 +664,55 @@ function handleFileSelect(e) {
     titleInput.value = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
   }
 
-  // If local file in vids folder, write relative path or read dataUrl
-  const reader = new FileReader();
-  reader.onload = function(evt) {
-    document.getElementById('mediaInputSrc').value = evt.target.result;
-  };
-  reader.readAsDataURL(file);
+  // Clean up any existing object URL
+  if (currentObjectUrl) {
+    URL.revokeObjectURL(currentObjectUrl);
+    currentObjectUrl = null;
+  }
+
+  const feedbackEl = document.getElementById('mediaFileFeedback');
+
+  if (isVideo) {
+    // IMPORTANT: On static hosting, full video files CANNOT be stored as Base64 in browser localStorage (5MB limit).
+    // Set project relative path inside the vids folder
+    const relativePath = 'vids/' + file.name;
+    document.getElementById('mediaInputSrc').value = relativePath;
+
+    // Use local Object URL strictly for instant visual verification in the modal preview
+    currentObjectUrl = URL.createObjectURL(file);
+    updateModalPreview('video', currentObjectUrl);
+
+    if (feedbackEl) {
+      feedbackEl.style.display = 'block';
+      feedbackEl.className = 'upload-feedback-badge success';
+      feedbackEl.innerHTML = `✅ Linked to <strong>${escapeHtml(relativePath)}</strong><br><span style="opacity:0.9;">Make sure <code>${escapeHtml(file.name)}</code> is in your project's <code>vids/</code> folder so visitors can stream it!</span>`;
+    }
+  } else if (isImage) {
+    // If small image (< 1.5MB), read as DataURL for instant inline display
+    if (file.size <= 1.5 * 1024 * 1024) {
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        document.getElementById('mediaInputSrc').value = evt.target.result;
+        updateModalPreview('image', evt.target.result);
+      };
+      reader.readAsDataURL(file);
+      if (feedbackEl) {
+        feedbackEl.style.display = 'block';
+        feedbackEl.className = 'upload-feedback-badge success';
+        feedbackEl.innerHTML = `✅ Image loaded (${(file.size / 1024).toFixed(0)} KB)`;
+      }
+    } else {
+      const relativePath = 'vids/' + file.name;
+      document.getElementById('mediaInputSrc').value = relativePath;
+      currentObjectUrl = URL.createObjectURL(file);
+      updateModalPreview('image', currentObjectUrl);
+      if (feedbackEl) {
+        feedbackEl.style.display = 'block';
+        feedbackEl.className = 'upload-feedback-badge warning';
+        feedbackEl.innerHTML = `⚠️ Large image (${(file.size / (1024*1024)).toFixed(1)} MB). Linked to <strong>${escapeHtml(relativePath)}</strong> to avoid exceeding browser storage quota.`;
+      }
+    }
+  }
 }
 
 // Auto-format embed links (Vimeo, YouTube, Loom)
@@ -584,6 +760,13 @@ function saveMediaForm(e) {
     return;
   }
 
+  // Safety check: Prevent saving raw base64 video in localStorage
+  if (src.startsWith('data:video/')) {
+    const suggestedFile = document.getElementById('mediaFileInput').files[0]?.name || 'your_video.mp4';
+    alert(`⚠️ Direct Base64 video data cannot be saved to browser localStorage because of the 5MB browser quota limit.\n\nPlease use the project file path (e.g. vids/${suggestedFile}) or an embed link (Vimeo / YouTube / Loom).`);
+    return;
+  }
+
   // Auto format embed links
   const formattedSrc = formatEmbedUrl(src);
   if (formattedSrc !== src || formattedSrc.includes('player.vimeo.com') || formattedSrc.includes('youtube.com/embed') || formattedSrc.includes('loom.com/embed')) {
@@ -592,6 +775,7 @@ function saveMediaForm(e) {
   }
 
   let items = getMediaItems();
+  const wasEditing = !!editingMediaId;
 
   if (editingMediaId) {
     const item = items.find(i => i.id === editingMediaId);
@@ -600,7 +784,6 @@ function saveMediaForm(e) {
       item.type  = type;
       item.src   = src;
     }
-    showToast('Asset updated successfully!');
   } else {
     const newItem = {
       id: 'media_' + Date.now(),
@@ -611,10 +794,22 @@ function saveMediaForm(e) {
       dateAdded: new Date().toISOString().slice(0, 10)
     };
     items.unshift(newItem); // add to front
+  }
+
+  // Save to storage FIRST
+  const savedSuccessfully = saveMediaItems(items);
+  if (!savedSuccessfully) {
+    // Save failed (e.g. quota exceeded) - do NOT proceed or show false success toast
+    return;
+  }
+
+  // Only notify and close AFTER confirmed save
+  if (wasEditing) {
+    showToast('Asset updated successfully! ✅');
+  } else {
     showToast('New asset added to Live Site! 🎉');
   }
 
-  saveMediaItems(items);
   updateStats();
   renderActiveMedia();
   renderArchivedMedia();
@@ -772,6 +967,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const typeSelect = document.getElementById('mediaInputType');
         if (typeSelect) typeSelect.value = 'iframe';
       }
+      updateModalPreview();
     });
   }
 });

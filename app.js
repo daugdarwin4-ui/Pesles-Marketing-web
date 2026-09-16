@@ -271,9 +271,14 @@ function loadLiveMedia() {
           dateAdded: '2026-08-27'
         });
       }
-      localStorage.setItem(STORAGE_KEY_MEDIA, JSON.stringify(all));
+      try {
+        localStorage.setItem(STORAGE_KEY_MEDIA, JSON.stringify(all));
+      } catch (writeErr) {
+        console.warn('Could not persist updated media items to localStorage:', writeErr);
+      }
       livePlaylist = all.filter(i => !i.archived);
     } catch (e) {
+      console.error('Error loading live media:', e);
       livePlaylist = DEFAULT_MEDIA;
     }
   } else {

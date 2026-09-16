@@ -320,6 +320,9 @@
 
       <form onsubmit="saveMediaForm(event)">
         <div class="admin-modal-body">
+          <!-- Live Preview Container -->
+          <div id="modalPreviewContainer" class="modal-preview-box"></div>
+
           <div class="form-group">
             <label for="mediaInputTitle">Asset Title</label>
             <input type="text" id="mediaInputTitle" class="form-input" placeholder="e.g. Masterclass Lesson 2" required>
@@ -327,7 +330,7 @@
 
           <div class="form-group">
             <label for="mediaInputType">Media Type</label>
-            <select id="mediaInputType" class="form-select">
+            <select id="mediaInputType" class="form-select" onchange="updateModalPreview()">
               <option value="video">MP4 Video File</option>
               <option value="image">High-Res Image (JPG / PNG)</option>
               <option value="iframe">Embed URL (Loom / YouTube / Vimeo)</option>
@@ -335,15 +338,27 @@
           </div>
 
           <div class="form-group">
-            <label for="mediaInputSrc">Media Source (File Path, Data URL, or Embed Link)</label>
-            <input type="text" id="mediaInputSrc" class="form-input" placeholder="e.g. vids/my_video.mp4 or https://..." required>
+            <label for="mediaInputSrc">Media Source (File Path, Embed Link, or CDN URL)</label>
+            <input type="text" id="mediaInputSrc" class="form-input" placeholder="e.g. vids/SCREENRECORD.mp4 or https://..." required oninput="updateModalPreview()">
+            <div style="margin-top: 6px;">
+              <span style="font-size:0.72rem;color:var(--text-muted);display:block;margin-bottom:4px;">Quick select existing project video:</span>
+              <div class="quick-chips-group">
+                <button type="button" class="quick-chip-btn" onclick="selectQuickVideo('vids/SCREENRECORD.mp4', 'Screen Record Demo')">🎥 SCREENRECORD.mp4</button>
+                <button type="button" class="quick-chip-btn" onclick="selectQuickVideo('vids/IMG_7152.MP4', 'Live Session Masterclass')">🎥 IMG_7152.MP4</button>
+                <button type="button" class="quick-chip-btn" onclick="selectQuickVideo('vids/IMG_8455.MOV', 'Live Session MOV')">🎥 IMG_8455.MOV</button>
+                <button type="button" class="quick-chip-btn" onclick="selectQuickVideo('vids/screenrecordM (1).mp4', 'Screen Record Mobile')">🎥 screenrecordM.mp4</button>
+              </div>
+            </div>
           </div>
 
           <!-- File Upload helper -->
           <div class="form-group">
-            <label>Or Upload from Device:</label>
-            <input type="file" id="mediaFileInput" class="form-input" accept="video/mp4,image/*" style="padding:8px;">
-            <span style="font-size:0.74rem;color:var(--text-muted);">Supports MP4 videos, JPG, PNG, WEBP images.</span>
+            <label for="mediaFileInput">Or Link from Device File:</label>
+            <input type="file" id="mediaFileInput" class="form-input" accept="video/mp4,video/quicktime,image/*" style="padding:8px;">
+            <span style="font-size:0.73rem;color:var(--text-muted);display:block;margin-top:4px;">
+              💡 <em>Videos selected will link to <code>vids/filename</code>. Place the file inside your project's <code>vids/</code> folder so visitors can stream it smoothly.</em>
+            </span>
+            <div id="mediaFileFeedback" class="upload-feedback-badge"></div>
           </div>
         </div>
 
