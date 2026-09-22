@@ -89,12 +89,11 @@ function handleAdminLogout() {
 
 // Factory Default Media Items
 const DEFAULT_MEDIA_ITEMS = [
-
   {
     id: 'media_1',
-    title: 'Live Session Masterclass',
-    type: 'video',
-    src: 'vids/IMG_7152.MP4',
+    title: 'About Course',
+    type: 'iframe',
+    src: 'https://www.youtube.com/embed/kx6Ysg3gHII',
     archived: false,
     dateAdded: '2026-08-27'
   },
@@ -108,7 +107,7 @@ const DEFAULT_MEDIA_ITEMS = [
   },
   {
     id: 'media_3',
-    title: 'Student Results & Proof',
+    title: 'Students Results & Proof',
     type: 'image',
     src: 'vids/photo_6338936490255128263_w.jpg',
     archived: false,
@@ -116,17 +115,17 @@ const DEFAULT_MEDIA_ITEMS = [
   },
   {
     id: 'media_4',
-    title: 'Platform Walkthrough',
+    title: 'About Ebook',
     type: 'iframe',
-    src: 'https://player.vimeo.com/video/1221855390?h=00f22282ba',
+    src: 'https://www.youtube.com/embed/ucwpcDjnN3A',
     archived: false,
     dateAdded: '2026-08-27'
   },
   {
     id: 'media_5',
-    title: 'Masterclass Walkthrough',
+    title: 'Screenrecord of Website Course',
     type: 'iframe',
-    src: 'https://player.vimeo.com/video/1226110797?h=46e2e8deb8',
+    src: 'https://www.youtube.com/embed/_veMxWVW2OE',
     archived: false,
     dateAdded: '2026-08-27'
   }
@@ -144,7 +143,7 @@ const DEFAULT_IG_CONFIG = {
 };
 
 /* ==========================================================================
-   State & Storage Helpers
+   Data Layer & Persistence
    ========================================================================== */
 function getMediaItems() {
   const data = localStorage.getItem(STORAGE_KEY_MEDIA);
@@ -171,24 +170,12 @@ function getMediaItems() {
       };
     });
 
-    // Ensure item 5 is present
-    const hasItem5 = items.some(item => item.src && item.src.includes('1226110797'));
-    if (!hasItem5) {
-      const item4 = items.find(item => item.id === 'media_4' || item.id === '4');
-      if (item4) {
-        item4.src = 'https://player.vimeo.com/video/1221855390?h=00f22282ba';
-        item4.title = 'Platform Walkthrough';
-        item4.type = 'iframe';
-      }
-      items.push({
-        id: 'media_5',
-        title: 'Masterclass Walkthrough',
-        src: 'https://player.vimeo.com/video/1226110797?h=46e2e8deb8',
-        type: 'iframe',
-        archived: false,
-        dateAdded: '2026-08-27'
-      });
+    // Check if outdated vimeo entries exist, upgrade to new playlist
+    const hasOldVimeo = items.some(item => item.src && (item.src.includes('1226110797') || item.src.includes('1221855390')));
+    if (hasOldVimeo) {
+      items = DEFAULT_MEDIA_ITEMS;
     }
+
     localStorage.setItem(STORAGE_KEY_MEDIA, JSON.stringify(items));
     return items;
   } catch (e) {

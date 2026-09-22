@@ -188,11 +188,11 @@ const STORAGE_KEY_MEDIA = 'pesles_media_items';
 const STORAGE_KEY_IG    = 'pesles_ig_config';
 
 const DEFAULT_MEDIA = [
-  { id: '1', title: 'Live Session', src: 'vids/IMG_7152.MP4', type: 'video', archived: false },
+  { id: '1', title: 'About Course', src: 'https://www.youtube.com/embed/kx6Ysg3gHII', type: 'iframe', archived: false },
   { id: '2', title: 'Creative Showcase', src: 'vids/photo_6338936490255128232_w.jpg', type: 'image', archived: false },
-  { id: '3', title: 'Student Results', src: 'vids/photo_6338936490255128263_w.jpg', type: 'image', archived: false },
-  { id: '4', title: 'Platform Walkthrough', src: 'https://player.vimeo.com/video/1221855390?h=00f22282ba', type: 'iframe', archived: false },
-  { id: '5', title: 'Masterclass Walkthrough', src: 'https://player.vimeo.com/video/1226110797?h=46e2e8deb8', type: 'iframe', archived: false }
+  { id: '3', title: 'Students Results & Proof', src: 'vids/photo_6338936490255128263_w.jpg', type: 'image', archived: false },
+  { id: '4', title: 'About Ebook', src: 'https://www.youtube.com/embed/ucwpcDjnN3A', type: 'iframe', archived: false },
+  { id: '5', title: 'Screenrecord of Website Course', src: 'https://www.youtube.com/embed/_veMxWVW2OE', type: 'iframe', archived: false }
 ];
 
 let livePlaylist = [];
@@ -252,25 +252,12 @@ function loadLiveMedia() {
         };
       });
 
-      // Ensure 5th video item is present in stored items
-      const hasItem5 = all.some(item => item.src && item.src.includes('1226110797'));
-      if (!hasItem5) {
-        // Restore slide 4 to original vimeo if it was changed
-        const item4 = all.find(item => item.id === '4' || item.id === 'media_4');
-        if (item4) {
-          item4.src = 'https://player.vimeo.com/video/1221855390?h=00f22282ba';
-          item4.title = 'Platform Walkthrough';
-          item4.type = 'iframe';
-        }
-        all.push({
-          id: 'media_5',
-          title: 'Masterclass Walkthrough',
-          src: 'https://player.vimeo.com/video/1226110797?h=46e2e8deb8',
-          type: 'iframe',
-          archived: false,
-          dateAdded: '2026-08-27'
-        });
+      // If user had old vimeo items stored, migrate cleanly if desired or keep updated
+      const hasOldVimeo = all.some(item => item.src && (item.src.includes('1226110797') || item.src.includes('1221855390')));
+      if (hasOldVimeo) {
+        all = DEFAULT_MEDIA;
       }
+
       try {
         localStorage.setItem(STORAGE_KEY_MEDIA, JSON.stringify(all));
       } catch (writeErr) {
@@ -305,7 +292,13 @@ function renderLivePlaylist() {
       previewContent = `<img src="${item.src}" alt="${item.title || 'Preview'}" loading="lazy">`;
     } else if (item.type === 'iframe') {
       const vimeoMatch = item.src.match(/video\/(\d+)/) || item.src.match(/vimeo\.com\/(\d+)/);
-      const thumbSrc = vimeoMatch ? `https://vumbnail.com/${vimeoMatch[1]}.jpg` : 'vids/photo_6338936490255128232_w.jpg';
+      const ytMatch = item.src.match(/embed\/([^"?&/]+)/);
+      let thumbSrc = 'vids/photo_6338936490255128232_w.jpg';
+      if (vimeoMatch) {
+        thumbSrc = `https://vumbnail.com/${vimeoMatch[1]}.jpg`;
+      } else if (ytMatch) {
+        thumbSrc = `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`;
+      }
       previewContent = `<img src="${thumbSrc}" onerror="this.onerror=null;this.src='vids/photo_6338936490255128232_w.jpg';" alt="${item.title || 'Preview'}" loading="lazy">`;
     }
 
