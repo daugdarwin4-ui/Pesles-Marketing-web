@@ -7,3 +7,7 @@ desktop.ini
 *.log
 .vercel
 node_modules/
+
+# Large raw recordings (>100MB exceeds GitHub limit)
+vids/vids recording.mp4
+

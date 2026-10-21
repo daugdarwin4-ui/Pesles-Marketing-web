@@ -192,7 +192,7 @@ const DEFAULT_MEDIA = [
   { id: '2', title: 'Creative Showcase', src: 'vids/photo_6338936490255128232_w.jpg', type: 'image', archived: false },
   { id: '3', title: 'Students Results & Proof', src: 'vids/photo_6338936490255128263_w.jpg', type: 'image', archived: false },
   { id: '4', title: 'About Ebook', src: 'https://www.youtube.com/embed/ucwpcDjnN3A', type: 'iframe', archived: false },
-  { id: '5', title: 'Screenrecord of Website Course', src: 'https://www.youtube.com/embed/_veMxWVW2OE', type: 'iframe', archived: false }
+  { id: '5', title: 'Screenrecord of Website Course', src: 'https://www.youtube.com/embed/Eaa3coreHCA', type: 'iframe', archived: false }
 ];
 
 let livePlaylist = [];
@@ -250,6 +250,14 @@ function loadLiveMedia() {
           src: src,
           type: type
         };
+      });
+
+      // Migrate previous item 5 if cached with old ID
+      all = all.map(item => {
+        if (item.src && item.src.includes('_veMxWVW2OE')) {
+          return { ...item, src: 'https://www.youtube.com/embed/Eaa3coreHCA' };
+        }
+        return item;
       });
 
       // If user had old vimeo items stored, migrate cleanly if desired or keep updated

@@ -125,7 +125,7 @@ const DEFAULT_MEDIA_ITEMS = [
     id: 'media_5',
     title: 'Screenrecord of Website Course',
     type: 'iframe',
-    src: 'https://www.youtube.com/embed/_veMxWVW2OE',
+    src: 'https://www.youtube.com/embed/Eaa3coreHCA',
     archived: false,
     dateAdded: '2026-08-27'
   }
@@ -168,6 +168,14 @@ function getMediaItems() {
         src: src,
         type: type
       };
+    });
+
+    // Migrate previous item 5 if cached with old ID
+    items = items.map(item => {
+      if (item.src && item.src.includes('_veMxWVW2OE')) {
+        return { ...item, src: 'https://www.youtube.com/embed/Eaa3coreHCA' };
+      }
+      return item;
     });
 
     // Check if outdated vimeo entries exist, upgrade to new playlist
